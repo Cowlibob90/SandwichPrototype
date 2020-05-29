@@ -17,6 +17,9 @@ public class GameManager : MonoBehaviour
     // Replay Vars
     private List<ReplaySample> replaySamples = new List<ReplaySample>();
     private bool sampleTheTransform;
+    int replayIndex;
+    bool doFirstReplayFrame;
+    Transform recordingTarget;
 
     private bool doOneRetry;
 
@@ -36,6 +39,12 @@ public class GameManager : MonoBehaviour
     void Update()
     {
         
+    }
+
+    private void FixedUpdate()
+    {
+        ReplaySampler();
+        RewindReplayPlayer();
     }
 
     public void FindStack()
@@ -75,9 +84,14 @@ public class GameManager : MonoBehaviour
         singleton = null;
     }
 
+
+    #region Replay System
+
     public void StartReplaySampling(Transform targetIngredient)
     {
-        StartCoroutine(ReplaySampler(targetIngredient));
+        recordingTarget = targetIngredient;
+        sampleTheTransform = true;
+        //StartCoroutine(ReplaySampler(targetIngredient));
     }
 
     public void StopReplaySamples()
@@ -89,57 +103,106 @@ public class GameManager : MonoBehaviour
     {
         replaySamples.Clear();
     }
-
-    IEnumerator ReplaySampler(Transform targetIngredient)
-    {
-        sampleTheTransform = true;
-
-        while (sampleTheTransform)
-        {
-            replaySamples.Add(new ReplaySample(targetIngredient, targetIngredient.position, targetIngredient.rotation));
-            //yield return new WaitForFixedUpdate();
-            yield return new WaitForSeconds(1f / 60f);
-        }
-        yield return null;
-    }
-
+    
     public void RewindReplay()
     {
         if (!doOneRetry)
         {
-            StartCoroutine(RewindReplayPlayer());
+            //StartCoroutine(RewindReplayPlayer());
             doOneRetry = true;
         }
     }
 
-    IEnumerator RewindReplayPlayer()
+    void ReplaySampler ()
     {
-        for (int i = replaySamples.Count - 1; i >= 0; i--)
+        if (sampleTheTransform)
         {
-            Stack tempStack = replaySamples[i].TargetIngredient.GetComponent<Stack>();
-            if (tempStack != null)
-            {
-                Destroy(tempStack);
-            }
-
-            replaySamples[i].TargetIngredient.parent = parentIngredients;
-
-            replaySamples[i].SetIngredientToAllSampledProperties();
-            //yield return new WaitForFixedUpdate();
-            yield return new WaitForSeconds(1f / 60f);
+            replaySamples.Add(new ReplaySample(recordingTarget));
         }
-        ResetReplaySamples();
-       
-        //Resetting the stacks
-        GameObject[] allIngredients = GameObject.FindGameObjectsWithTag("Ingredients");
-        for (int i = 0; i < allIngredients.Length; i++)
-        {
-            allIngredients[i].AddComponent<Stack>();
-        }
-        doOneRetry = false;
-        yield return null;
     }
-    
+
+    void RewindReplayPlayer()
+    {
+        if (doOneRetry)
+        {
+            if (!doFirstReplayFrame)
+            {
+                replayIndex = replaySamples.Count - 1;
+                doFirstReplayFrame = true;
+            }
+            if (replayIndex >= 0)
+            {
+                Stack tempStack = replaySamples[replayIndex].TargetIngredient.GetComponent<Stack>();
+                if (tempStack != null)
+                {
+                    Destroy(tempStack);
+                }
+
+                replaySamples[replayIndex].TargetIngredient.parent = parentIngredients;
+
+                replaySamples[replayIndex].SetIngredientToAllSampledProperties();
+
+                replayIndex--;
+            }
+            else
+            {
+                ResetReplaySamples();
+
+                //Resetting the stacks
+                GameObject[] allIngredients = GameObject.FindGameObjectsWithTag("Ingredients");
+                
+                for (int i = 0; i < allIngredients.Length; i++)
+                {
+                    allIngredients[i].AddComponent<Stack>();
+                }
+                doOneRetry = false;
+                doFirstReplayFrame = false;
+            }
+        }
+    }
+
+    //IEnumerator ReplaySampler(Transform targetIngredient)
+    //{
+    //    sampleTheTransform = true;
+
+    //    while (sampleTheTransform)
+    //    {
+    //        replaySamples.Add(new ReplaySample(targetIngredient, targetIngredient.position, targetIngredient.rotation));
+    //        //yield return new WaitForFixedUpdate();
+    //        yield return new WaitForSeconds(1f / 60f);
+    //    }
+    //    yield return null;
+    //}
+
+
+    //IEnumerator RewindReplayPlayer()
+    //{
+    //    for (int i = replaySamples.Count - 1; i >= 0; i--)
+    //    {
+    //        Stack tempStack = replaySamples[i].TargetIngredient.GetComponent<Stack>();
+    //        if (tempStack != null)
+    //        {
+    //            Destroy(tempStack);
+    //        }
+
+    //        replaySamples[i].TargetIngredient.parent = parentIngredients;
+
+    //        replaySamples[i].SetIngredientToAllSampledProperties();
+    //        //yield return new WaitForFixedUpdate();
+    //        yield return new WaitForSeconds(1f / 60f);
+    //    }
+    //    ResetReplaySamples();
+
+    //    //Resetting the stacks
+    //    GameObject[] allIngredients = GameObject.FindGameObjectsWithTag("Ingredients");
+    //    for (int i = 0; i < allIngredients.Length; i++)
+    //    {
+    //        allIngredients[i].AddComponent<Stack>();
+    //    }
+    //    doOneRetry = false;
+    //    yield return null;
+    //}
+    #endregion
 }
 
 public class ReplaySample

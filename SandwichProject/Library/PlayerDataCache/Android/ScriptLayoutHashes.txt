@@ -1,6 +1,6 @@
 Android
 PlayerPath?
-D:/unity_projects/XX_BUILDS/APK/Sandwich/SandwichTest.apk
+D:/unity_projects/XX_BUILDS/APK/Sandwich/SandwichProject.apk
 SceneListBegin?
 Assets/Game Developer Test Assets/Scenes/Sandwich_F1.unity
 SceneListEnd?
